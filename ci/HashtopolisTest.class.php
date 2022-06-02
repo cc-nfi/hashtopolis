@@ -13,7 +13,9 @@ abstract class HashtopolisTest {
   
   protected static $status    = 0;
   protected static $testCount = 0;
-  
+ 
+  protected static $failed = array();
+
   protected $user;
   protected $apiKey;
   
@@ -39,7 +41,7 @@ abstract class HashtopolisTest {
     $this->init($fromVersion);
     
     HashtopolisTestFramework::log(HashtopolisTestFramework::LOG_INFO, "Running upgrades...");
-    include("/var/www/html/hashtopolis/src/install/updates/update.php");
+    include(dirname(__FILE__) ."/../src/install/updates/update.php");
     HashtopolisTestFramework::log(HashtopolisTestFramework::LOG_INFO, "Initialization with upgrade done!");
   }
   
@@ -67,7 +69,7 @@ abstract class HashtopolisTest {
     
     // load DB
     if ($version == "master") {
-      Factory::getAgentFactory()->getDB()->query(file_get_contents("/var/www/html/hashtopolis/src/install/hashtopolis.sql"));
+      Factory::getAgentFactory()->getDB()->query(file_get_contents(dirname(__FILE__) ."/../src/install/hashtopolis.sql"));
     }
     else {
       Factory::getAgentFactory()->getDB()->query(file_get_contents(dirname(__FILE__) . "/files/db_" . $version . ".sql"));
@@ -77,7 +79,6 @@ abstract class HashtopolisTest {
     
     // insert user and api key
     $salt = Util::randomString(30);
-    $PEPPER = ["abcd", "bcde", "cdef", "aaaa"];
     $hash = Encryption::passwordHash(HashtopolisTest::USER_PASS, $salt);
     $this->user = new User(null, 'testuser', '', $hash, $salt, 1, 0, 0, 0, 3600, AccessUtils::getOrCreateDefaultAccessGroup()->getId(), 0, '', '', '', '');
     $this->user = Factory::getUserFactory()->save($this->user);
@@ -99,6 +100,8 @@ abstract class HashtopolisTest {
     HashtopolisTestFramework::log(HashtopolisTestFramework::LOG_ERROR, "Test '$test' failed: $error");
     self::$testCount++;
     self::$status = -1;
+
+    self::$failed[] = $test; 
   }
   
   public function validState($response, $assert) {
@@ -118,7 +121,19 @@ abstract class HashtopolisTest {
   public static function getTestCount() {
     return self::$testCount;
   }
+
+  public static function getTestsPassedCount() {
+    return self::$testCount - count(self::$failed);
+  }
   
+  public static function getTestsFailedCount() {
+    return count(self::$failed);
+  }
+
+  public static function getFailedTests() {
+    return self::$failed;
+  }
+ 
   protected function testSuccess($test) {
     HashtopolisTestFramework::log(HashtopolisTestFramework::LOG_INFO, "Test '$test' passed!");
     self::$testCount++;

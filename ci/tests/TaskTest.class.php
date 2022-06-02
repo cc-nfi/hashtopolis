@@ -24,12 +24,32 @@ class TaskTest extends HashtopolisTest {
     }
   }
   
+  private function cleanup() {
+    $status = true;
+    // delete the created task
+    $status &= $this->deleteTaskIfExists("Test Task");
+
+    // remove the added files
+    $status &= $this->deleteFileIfExists("example.dict", 0);
+    $status &= $this->deleteFileIfExists("best64.rule", 1);
+
+    if (!$status) {
+      HashtopolisTestFramework::log(HashtopolisTestFramework::LOG_ERROR, "Some cleanup failed, deleting task or deleting files not succesfull!");
+    }
+  }
+
   public function run() {
     HashtopolisTestFramework::log(HashtopolisTestFramework::LOG_INFO, "Running " . $this->getTestName() . "...");
     $this->prepare();
-    $this->testListTasks();
-    $this->testCreateTask(["name" => "Test Task", "hashlistId" => 1, "attackCmd" => "#HL# -a 0 -r best64.rule example.dict", "priority" => 1, "color" => "5D5D5D", "crackerVersionId" => 1, "files" => [1, 2]]);
-    $this->testListTasks(['Test Task']);
+    try { 
+      $this->testListTasks();
+      $this->testCreateTask(["name" => "Test Task", "hashlistId" => 1, "attackCmd" => "#HL# -a 0 -r best64.rule example.dict", "priority" => 1, "color" => "5D5D5D", "crackerVersionId" => 1, "files" => [1, 2]]);
+      $this->testListTasks(['Test Task']);
+    }
+    finally {
+      $this->cleanup();
+    }
+
     HashtopolisTestFramework::log(HashtopolisTestFramework::LOG_INFO, $this->getTestName() . " completed");
   }
   
@@ -147,10 +167,59 @@ class TaskTest extends HashtopolisTest {
     }
     return true;
   }
-  
+
+  private function deleteTaskIfExists($name){
+    $response = HashtopolisTestFramework::doRequest([
+      "section" => "task",
+      "request" => "listTasks",
+      "accessKey" => "mykey"
+    ], HashtopolisTestFramework::REQUEST_UAPI
+    );
+
+    foreach ($response["tasks"] as $task) {
+      if ($task["name"] == $name) {
+        $response = HashtopolisTestFramework::doRequest([
+          "section" => "task",
+          "request" => "deleteTask",
+          "taskId" => $task["taskId"],
+          "accessKey" => "mykey"
+          ], HashtopolisTestFramework::REQUEST_UAPI
+          );
+          if ($response === false) {
+            return false;
+          }
+        }
+    }
+    return true;
+  }
+
+  private function deleteFileIfExists($name, $type) {
+    $response = HashtopolisTestFramework::doRequest([
+      "section" => "file",
+      "request" => "listFiles",
+      "accessKey" => "mykey"
+    ], HashtopolisTestFramework::REQUEST_UAPI
+    );
+
+    foreach ($response["files"] as $file) {
+      if ($file["filename"] == $name) {
+        $response = HashtopolisTestFramework::doRequest([
+          "section" => "file",
+          "request" => "deleteFile",
+          "fileId" => $file["fileId"],
+          "accessKey" => "mykey"
+        ], HashtopolisTestFramework::REQUEST_UAPI
+        );
+        if ($response === false) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   public function getTestName() {
     return "Task Test";
   }
 }
-
 HashtopolisTestFramework::register(new TaskTest());
