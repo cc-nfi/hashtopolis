@@ -70,6 +70,7 @@ class TaskTest extends HashtopolisTest {
       "crackerVersionId" => 0,
       "files" => [],
       "priority" => 0,
+      "maxAgents" => 0,
       "preprocessorId" => 0,
       "preprocessorCommand" => "",
       "accessKey" => "mykey"
