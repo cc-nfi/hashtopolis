@@ -28,6 +28,7 @@ class AccountTest extends HashtopolisTest {
     $this->testChangePassword('newPassword', 'newPassword', false);
     $this->testChangePassword('newPassword', '', false);
     $this->testChangePassword('newPassword', '123', false);
+    $this->testFailed("Dummy fail", "Deliberate failure to test CI");
     HashtopolisTestFramework::log(HashtopolisTestFramework::LOG_INFO, $this->getTestName() . " completed");
   }
   
